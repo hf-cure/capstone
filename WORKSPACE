@@ -2,6 +2,12 @@ workspace(
     name = "org_openmined_psi",
 )
 
+python_register_toolchains(
+  name = "python3_11",
+  python_version = "3.11",
+  ignore_root_user_error = True,
+)
+
 # Emsdk
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
@@ -24,8 +30,4 @@ load("@emsdk//:toolchains.bzl", "register_emscripten_toolchains")
 
 register_emscripten_toolchains()
 
-python_register_toolchains(
-  name = "python3_11",
-  python_version = "3.11",
-  ignore_root_user_error = True,
-)
+
