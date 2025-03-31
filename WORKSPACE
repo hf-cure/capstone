@@ -23,3 +23,9 @@ emsdk_emscripten_deps(emscripten_version = "3.1.67")
 load("@emsdk//:toolchains.bzl", "register_emscripten_toolchains")
 
 register_emscripten_toolchains()
+
+python_register_toolchains(
+    name = ...,
+    python_version = ...,
+    ignore_root_user_error = True,
+)

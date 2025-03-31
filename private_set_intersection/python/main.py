@@ -4,6 +4,11 @@ from fastapi import FastAPI
 import uvicorn
 
 app = FastAPI()
+python_register_toolchains(
+    name = ...,
+    python_version = ...,
+    ignore_root_user_error = True,
+)
 
 @app.get("/")
 def read_root():
