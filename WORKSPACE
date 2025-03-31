@@ -25,5 +25,7 @@ load("@emsdk//:toolchains.bzl", "register_emscripten_toolchains")
 register_emscripten_toolchains()
 
 python_register_toolchains(
-    ignore_root_user_error = True,
+  name = "python3_11",
+  python_version = "3.11",
+  ignore_root_user_error = True,
 )
