@@ -1,14 +1,11 @@
 import private_set_intersection.python as psi
 from typing import Union
-from fastapi import FastAPI
+from fastapi import  FastAPI, Request
 import uvicorn
+from typing import List
+from pydantic import BaseModel
 
 app = FastAPI()
-python_register_toolchains(
-    name = ...,
-    python_version = ...,
-    ignore_root_user_error = True,
-)
 
 @app.get("/")
 def read_root():
@@ -104,3 +101,62 @@ def read_root():
 
   print("Private Set Intersection (PSI) Result:", intersection_items)
   return {"Leaked Passwords": intersection_items}
+
+
+
+@app.post("/process_strings/")
+async def process_strings(strings: List[str]):
+    # Example logic: just return the received strings
+    return {"received_strings": strings}
+
+# @app.get("/get/process_strings/")
+# async def process_strings(strings abc):
+#     # Example logic: just return the received strings
+#     return {"received_strings": abc}
+
+# Define a matching model
+class Item(BaseModel):
+    website: str
+    username: str
+    password_hash: str
+    salt: str
+
+@app.post("/items/")
+async def receive_item(item: Item):
+    server_items = [
+      'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f',
+      'ed29f252cdbcff0e3a19dd5460115847bd72f2d579725cfbec62b9a9875de84c',
+      '02cd43946b94922972f5d1ed98c5e168895967aef05ee4a8fa3266d0e41f0111',
+      '27cc6994fc1c01ce6659c6bddca9b69c4c6a9418065e612c69d110b3f7b11f8a',
+      '72578cc4e80f2ef0dda7ce1f4fc172799baf26c97663eb29e0fb135773429e91',
+      '41c322301cb73f3827043eac97de31809c98aa12c2cd4800eb980849610e3787',
+      '540574625925baf547ef4bbcb21fb7f3af546f7dbf7e05209cfa54cdf418abe7',
+      'ba00d970e60c8fd052f59d79b99bbc9d1c5817d31b31609505dde385930f6e14',
+      '51d4f39c71f729cb7855b56242e3f038b61c55c2bc786a825451480357e56ea5',
+      'f7577fad44a33f17277f8f6045e4a4610249f9a08ffededa6da31fccaa5d1eff',
+      'bf35ca46b96e7151df91e403d68b322934f321b112d10eafa3f42921d5530132',
+      '85ad52460ec6af180971ddcfecff074a53b49c0dc9815dce5f40a6c456e03159',
+      '37684e7bbc09edfc532d0a7e5fe048f16f95f311e04d0cc14518d217b98e6d78',
+      'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae4', #123
+    ]
+
+    client_items = []
+    client_items.append(item.password_hash)
+
+    fpr = 0.001
+    server = psi.server.CreateWithNewKey(reveal_intersection=True)
+    client = psi.client.CreateWithNewKey(reveal_intersection=True)
+
+    setup_msg = server.CreateSetupMessage(fpr, len(client_items), server_items)
+
+    request = client.CreateRequest(client_items)
+    response = server.ProcessRequest(request)
+
+    intersection_indices = client.GetIntersection(setup_msg, response)
+    intersection_items = [client_items[i] for i in intersection_indices]
+
+    return {
+        "status": "success",
+        # "received": item.dict(),  # Convert Pydantic model to dictionary
+        "matched": intersection_items
+    }
