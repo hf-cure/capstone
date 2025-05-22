@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 import time
+from collections import defaultdict, Counter
 
 app = FastAPI()
 
@@ -50057,44 +50058,54 @@ class ItemsRequest(BaseModel):
 
 @app.post("/check-items/")
 async def check_passwords(request: ItemsRequest):
-    # Extract password hashes from all items
     client_items = [item.password_hash for item in request.items]
 
-    # Keep track of original items for detailed reporting
-    items_by_hash = {item.password_hash: item for item in request.items}
+    # Group original items by password_hash
+    hash_to_items = defaultdict(list)
+    for item in request.items:
+        hash_to_items[item.password_hash].append(item)
 
     # Set false positive rate
     fpr = 0.001
 
-    # Initialize PSI server and client
+    # PSI protocol
     server = psi.server.CreateWithNewKey(reveal_intersection=True)
     client = psi.client.CreateWithNewKey(reveal_intersection=True)
-
-    # Create setup message
     setup_msg = server.CreateSetupMessage(fpr, len(client_items), server_items)
-
-    # Create request from client items and process it
     request_msg = client.CreateRequest(client_items)
     response = server.ProcessRequest(request_msg)
-
-    # Get intersection indices and corresponding items
     intersection_indices = client.GetIntersection(setup_msg, response)
+
+    # Matched hashes can have duplicates
     matched_hashes = [client_items[i] for i in intersection_indices]
 
-    # Create detailed matched items with all fields
+    # Count how many times each hash matched
+    hash_match_counts = Counter(matched_hashes)
+
+    # Keep track of already used usernames to avoid duplicates
+    used_usernames = set()
     matched_items = []
-    for hash_value in matched_hashes:
-        item = items_by_hash[hash_value]
-        matched_items.append({
-            "website": item.website,
-            "username": item.username,
-            "password_hash": item.password_hash,
-            "salt": item.salt
-        })
+
+    for hash_val, count in hash_match_counts.items():
+        available_items = hash_to_items[hash_val]
+        used = 0
+
+        for item in available_items:
+            if item.username not in used_usernames:
+                used_usernames.add(item.username)
+                matched_items.append({
+                    "website": item.website,
+                    "username": item.username,
+                    "password_hash": item.password_hash,
+                    "salt": item.salt
+                })
+                used += 1
+                if used == count:
+                    break  # Stop when we've added enough matches for this hash
 
     return {
         "status": "success",
         "total_submitted": len(client_items),
-        "matches_found": len(matched_hashes),
+        "matches_found": len(matched_items),
         "matched_items": matched_items
     }
