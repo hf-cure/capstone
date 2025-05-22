@@ -1,179 +1,131 @@
-![om-logo](https://github.com/OpenMined/design-assets/blob/master/logos/OM/horizontal-primary-trans.png)
+# Capstone Backend
 
-[![CD](https://github.com/OpenMined/PSI/actions/workflows/CD.yml/badge.svg?event=release)](https://github.com/OpenMined/PSI/actions/workflows/CD.yml)
-![License](https://img.shields.io/github/license/OpenMined/PSI)
-![OpenCollective](https://img.shields.io/opencollective/all/openmined)
+A FastAPI-based backend service that provides secure password validation using Private Set Intersection (PSI) technology with OpenMined PSI library.
 
-# PSI
+## Prerequisites
 
-Private Set Intersection protocol based on ECDH and Golomb Compressed Sets or
-Bloom Filters.
+Before setting up this project, make sure you have **Python** installed on your system.
 
-## Protocol
+- **Python 3.8 or higher** is required
+- You can download Python from [python.org](https://www.python.org/downloads/)
+- **Bazel** build tool is required for building the PSI library
 
-The Private Set Intersection (PSI) protocol involves two parties, a client and a
-server, each holding a dataset. The goal of the protocol is for the client to
-determine the intersection between their dataset and the server's dataset,
-without revealing any information about their respective datasets to each other.
+## Project Setup
 
-The protocol proceeds as follows:
+### 1. Clone the Repository
 
-1. Setup (server)
-
-The server encrypts all its elements `x` under a commutative encryption scheme,
-computing `H(x)^s` where `s` is its secret key. The encrypted elements are then
-inserted into a container and sent to the client in the form of a serialized
-protobuf and resembles* the following:
-
-```
-[ H(x_1)^(s), H(x_2)^(s), ... , H(x_n)^(s) ]
+```bash
+git clone https://github.com/hf-cure/capstone.git
+cd capstone
 ```
 
-2. Request (client)
+### 2. PSI OpenMined Library Installation
 
-The client encrypts all their elements `x` using the commutative encryption
-scheme, computing `H(x)^c`, where `c` is its secret key. The client sends its
-encrypted elements to the server along with a boolean flag,
-`reveal_intersection`, indicating whether the client wants to learn the elements
-in the intersection or only its size (cardinality). The payload is sent as a
-serialized protobuf and resembles* the following:
+Follow these steps carefully to install and configure the PSI OpenMined library:
 
-```
-[ H(x_1)^(c), H(x_2)^(c), ... , H(x_n)^(c) ]
+#### Step 1: Navigate to PSI Directory
+```bash
+cd private_set_intersection
 ```
 
-3. Response (server)
-
-For each encrypted element `H(x)^c` received from the client, the server
-encrypts it again under the commutative encryption scheme with its secret key
-`s`, computing `(H(x)^c)^s = H(x)^(cs)`. The result is sent back to the client
-in a serialized protobuf and resembles* the following:
-
-```
-[ H(x_1)^(cs), H(x_2)^(cs), ... , H(x_n)^(cs) ]
+#### Step 2: Move to Python Directory
+```bash
+cd python
 ```
 
-4. Compute intersection (client)
-
-The client decrypts each element received from the server's response using its
-secret key `c`, computing `(H(x)^(cs))^(1/c) = H(x)^s`. It then checks whether
-each decrypted element is present in the container received from the server, and
-reports the number of matches as the intersection size.
-
-It's worth noting that the protocol has several variants, some of which
-introduce a small false-positive rate, while others do not generate false
-positives. This behavior is selective, and the false-positive rate can be tuned.
-The selection has implications on communication costs as well.
-
-__NOTE resembles*__: The protocol has configurable **containers**. Golomb
-Compressed Sets (`Gcs`) is the default container but it can be overridden to be
-`BloomFilter` or `Raw` encrypted strings. `Gcs` and `BloomFilter` will have
-false positives whereas `Raw` will not. Using `Raw` increases the communication
-cost as it is sending raw strings over the wire while the other two options
-drastically reduce the cost at the price of having false positives.
-
-## Security
-
-See [SECURITY.md](SECURITY.md).
-
-## Requirements
-
-There are requirements for the entire project which each language shares. There
-also could be requirements for each target language:
-
-### Global Requirements
-
-These are the common requirements across all target languages of this project.
-
-- A compiler such as clang or gcc
-- [Bazel](https://bazel.build)
-
-## Installation
-
-The repository uses a folder structure to isolate the supported targets from one
-another:
-
-```
-private_set_intersection/<target language>/<sources>
+#### Step 3: Install OpenMined PSI
+```bash
+pip install openmined-psi
 ```
 
-### C++
-
-See the [C++ README.md](private_set_intersection/cpp/README.md)
-
-### JavaScript
-
-See the [JavaScript README.md](private_set_intersection/javascript/README.md)
-
-### Go
-
-See the [Go README.md](private_set_intersection/go/README.md)
-
-### Python
-
-See the [Python README.md](private_set_intersection/python/README.md)
-
-### Rust
-
-See the [Rust README.md](private_set_intersection/rust/README.md)
-
-## Usage
-
-To use this library in another Bazel project, add the following to your
-WORKSPACE file:
-
-```
-load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
-
-git_repository(
-   name = "org_openmined_psi",
-   remote = "https://github.com/OpenMined/PSI",
-   branch = "master",
-)
-
-load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
-
-git_repository(
-    name = "emsdk",
-    remote = "https://github.com/emscripten-core/emsdk.git",
-    strip_prefix = "bazel",
-    tag = "3.1.67",
-)
-
-load("@emsdk//:deps.bzl", emsdk_deps = "deps")
-
-emsdk_deps()
-
-load("@emsdk//:emscripten_deps.bzl", emsdk_emscripten_deps = "emscripten_deps")
-
-emsdk_emscripten_deps(emscripten_version = "3.1.67")
-
-load("@emsdk//:toolchains.bzl", "register_emscripten_toolchains")
-
-register_emscripten_toolchains()
+#### Step 4: Run Tests
+Replace `3_8` with your Python version (e.g., `3_9`, `3_10`, etc.)
+```bash
+bazel test --test_output=all //private_set_intersection/python:test_3_8
 ```
 
-A full description of the protocol can be found in the documentation of the
-[PsiClient](private_set_intersection/cpp/psi_client.h) class. The corresponding
-server class is [PsiServer](private_set_intersection/cpp/psi_server.h). An
-example of how to interleave the different phases of the protocol can be found
-in [psi_server_test.cpp](private_set_intersection/cpp/psi_server_test.cpp).
+#### Step 5: Run Benchmark
+Replace `3_8` with your Python version
+```bash
+bazel run -c opt --test_output=all //private_set_intersection/python:benchmark_3_8
+```
 
-## Changes
+#### Step 6: Add Dependencies
+Add any dependencies to `requirements.in` and then run:
+```bash
+bazel run //private_set_intersection/python/requirements:requirements_3_8.update
+```
+Replace `3_8` with your Python version.
 
-See [CHANGES.md](CHANGES.md).
+#### Step 7: Build the Wheel
+```bash
+bazel build -c opt //private_set_intersection/python:wheel
+```
 
-## Contributing
+#### Step 8: Build and Publish (Optional)
+To build and publish in one go to test PyPi:
+```bash
+bazel build -c opt //private_set_intersection/python:wheel
+```
 
-Pull requests are welcome. For major changes, please open an issue first to
-discuss what you would like to change.
+### 3. Run the FastAPI Project
 
-Please make sure to update tests as appropriate.
+After completing the PSI library setup (steps 1-8), navigate back to the main directory:
 
-## Contributors
+```bash
+cd ../../  # Go back to main project directory
+```
 
-See [CONTRIBUTORS.md](CONTRIBUTORS.md).
+Verify that `main.py` is in the current folder:
+```bash
+ls main.py
+```
 
-## License
+Run the FastAPI development server:
+```bash
+fastapi dev main.py
+```
 
-[Apache License 2.0](https://choosealicense.com/licenses/apache-2.0/)
+## Application Details
+
+- **Port**: The backend service runs on port `8000`
+- **API Base URL**: http://127.0.0.1:8000/
+- **Framework**: FastAPI
+- **Security**: Uses Private Set Intersection (PSI) for secure password validation
+
+## How It Works
+
+1. The backend receives password validation requests from the frontend
+2. Uses PSI (Private Set Intersection) technology with OpenMined library
+3. Securely checks if the submitted password exists in the database
+4. Returns validation results without exposing the actual database contents
+5. Maintains user privacy through cryptographic protocols
+
+## API Integration
+
+This backend service is designed to work with the frontend application running on port 5000. The typical flow is:
+
+1. Frontend sends password validation request
+2. Backend processes the request using PSI
+3. Password is checked against rockyou.txt database
+4. Results are returned to frontend for display
+
+## Important Notes
+
+- The first 8 steps are crucial for building the PSI library correctly
+- Make sure to replace `3_8` with your actual Python version in all commands
+- Bazel build tool is required for the PSI library compilation
+- The rockyou.txt database is used for password validation
+
+## Troubleshooting
+
+- Ensure Python is properly installed and accessible
+- Verify Bazel is installed for building the PSI library
+- Check that you're using the correct Python version in commands
+- Make sure `main.py` is in the root directory before running FastAPI
+- Ensure no other application is using port 8000
+
+## Repository
+
+Backend Repository: https://github.com/hf-cure/capstone
+Frontend Repository: https://github.com/hf-cure/capstone-frontend
